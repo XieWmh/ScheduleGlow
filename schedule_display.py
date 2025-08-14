@@ -17,7 +17,7 @@ class CustomizableScheduleApp:
         
         # 窗口基本设置
         self.window_width = 400     # 窗口宽度（像素）
-        self.window_height = 800    # 窗口高度（像素）
+        self.window_height = 1000   # 窗口高度（像素）
         self.default_x = 1310      # 窗口默认X坐标
         self.default_y = 0          # 窗口默认Y坐标
         self.allow_dragging = False # 是否允许拖动
@@ -26,14 +26,20 @@ class CustomizableScheduleApp:
         
         self.root.geometry(f"{self.window_width}x{self.window_height}+{self.default_x}+{self.default_y}")
         self.root.overrideredirect(True)
-        self.root.attributes("-topmost", True)
+        # 删除强制置顶功能：注释掉以下行
+        # self.root.attributes("-topmost", True)
         self.root.attributes("-alpha", self.opacity)  # 设置透明度
         self.hide_from_taskbar()
         
+        # 字体大小设置
+        self.time_font_size = 12
+        self.course_font_size = 12
+        self.title_font_size = 16
+        
         # 字体设置
-        self.font_config = ('SimHei', 12)
-        self.title_font = ('SimHei', 16, 'bold')
-        self.time_font = ('SimHei', 12, 'bold')
+        self.font_config = ('SimHei', self.course_font_size)
+        self.title_font = ('SimHei', self.title_font_size, 'bold')
+        self.time_font = ('SimHei', self.time_font_size, 'bold')
         self.reminder_font = ('SimHei', 14, 'bold')
         
         # 星期映射
@@ -117,6 +123,12 @@ class CustomizableScheduleApp:
             pystray.MenuItem("显示课程表", self.show_window),
             pystray.MenuItem("隐藏课程表", self.hide_window),
             pystray.MenuItem(f"拖动: {'开启' if self.allow_dragging else '关闭'}", self.toggle_dragging),
+            pystray.MenuItem("字体设置", pystray.Menu(
+                pystray.MenuItem("时间字体增大", self.increase_time_font),
+                pystray.MenuItem("时间字体减小", self.decrease_time_font),
+                pystray.MenuItem("课程名字字体增大", self.increase_course_font),
+                pystray.MenuItem("课程名字字体减小", self.decrease_course_font),
+            )),
             pystray.MenuItem("编辑今日课程", self.open_edit_window),
             pystray.MenuItem("刷新课程表", self.refresh_schedule),
             pystray.MenuItem("退出", self.exit_app)
@@ -159,8 +171,9 @@ class CustomizableScheduleApp:
         self.tree = ttk.Treeview(main_container, columns=columns, show="headings")
         self.tree.heading("时间", text="时间 (格式: HH:MM~HH:MM)")
         self.tree.heading("课程名称", text="课程名称")
-        self.tree.column("时间", width=200)
-        self.tree.column("课程名称", width=350)
+        # 编辑窗口中时间和课程名称列宽度设置
+        self.tree.column("时间", width=200)  # 时间列宽度
+        self.tree.column("课程名称", width=350)  # 课程名称列宽度
         
         # 添加滚动条
         scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=self.tree.yview)
@@ -281,7 +294,7 @@ class CustomizableScheduleApp:
             self.load_and_display_schedule()
         except Exception as e:
             messagebox.showerror("保存失败", f"无法保存文件: {str(e)}")
-        
+    
     def toggle_dragging(self, icon=None, item=None):
         self.allow_dragging = not self.allow_dragging
         self.setup_dragging()
@@ -299,29 +312,36 @@ class CustomizableScheduleApp:
             pystray.MenuItem("显示课程表", self.show_window),
             pystray.MenuItem("隐藏课程表", self.hide_window),
             pystray.MenuItem(f"拖动: {'开启' if self.allow_dragging else '关闭'}", self.toggle_dragging),
+            pystray.MenuItem("字体设置", pystray.Menu(
+                pystray.MenuItem("时间字体增大", self.increase_time_font),
+                pystray.MenuItem("时间字体减小", self.decrease_time_font),
+                pystray.MenuItem("课程名字字体增大", self.increase_course_font),
+                pystray.MenuItem("课程名字字体减小", self.decrease_course_font),
+            )),
             pystray.MenuItem("编辑今日课程", self.open_edit_window),
             pystray.MenuItem("刷新课程表", self.refresh_schedule),
             pystray.MenuItem("退出", self.exit_app)
         )
-        
+    
     def show_window(self, icon=None, item=None):
         self.root.deiconify()
-        self.root.attributes("-topmost", True)
-        self.root.attributes("-topmost", False)
-        
+        # 删除显示窗口时的置顶设置
+        # self.root.attributes("-topmost", True)
+        # self.root.attributes("-topmost", False)
+    
     def hide_window(self, icon=None, item=None):
         self.root.withdraw()
-        
+    
     def exit_app(self, icon=None, item=None):
         if icon:
             icon.stop()
         self.root.destroy()
         sys.exit(0)
-        
+    
     def start_move(self, event):
         self.x = event.x
         self.y = event.y
-        
+    
     def on_move(self, event):
         x = self.root.winfo_x() + event.x - self.x
         y = self.root.winfo_y() + event.y - self.y
@@ -338,7 +358,7 @@ class CustomizableScheduleApp:
         if not os.path.exists(filename):
             print(f"未找到课程文件: {filename}")
             return courses
-            
+        
         try:
             with open(filename, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
@@ -413,7 +433,7 @@ class CustomizableScheduleApp:
             relief="solid",
             padding=8,
             anchor="center",
-            width=10
+            width=10  # 时间表头宽度
         )
         time_header.grid(row=0, column=0, sticky="nsew")
         
@@ -425,7 +445,7 @@ class CustomizableScheduleApp:
             relief="solid",
             padding=8,
             anchor="center",
-            width=20
+            width=20  # 课程表头宽度
         )
         course_header.grid(row=0, column=1, sticky="nsew")
         
@@ -437,48 +457,78 @@ class CustomizableScheduleApp:
             # 交替行样式
             style = "EvenRow.TLabel" if i % 2 == 0 else "OddRow.TLabel"
             
-            # 时间标签
+            # 时间标签 - 可修改以下参数调整显示大小
             time_label = ttk.Label(
                 self.content_frame, 
                 text=f"{course['start']}~{course['end']}", 
                 font=self.time_font,
                 borderwidth=1, 
                 relief="solid",
-                padding=10,
+                padding=10,  # 内边距，影响单元格大小
                 anchor="center",
-                width=10,
+                width=17,    # 时间列宽度
                 style=style if not is_current else ""
             )
             # 当前课程高亮显示
             if is_current:
-                time_label.configure(background="#d1ecf1", font=('SimHei', 12, 'bold', 'underline'))
+                time_label.configure(background="#d1ecf1", font=('SimHei', self.time_font_size, 'bold', 'underline'))
                 
             time_label.grid(row=i, column=0, sticky="nsew", pady=2)
             
-            # 课程名称标签
+            # 课程名称标签 - 可修改以下参数调整显示大小
             course_label = ttk.Label(
-                self.content_frame, 
-                text=course['name'], 
-                font=self.font_config,
-                borderwidth=1, 
-                relief="solid",
-                padding=10,
-                anchor="w",
-                width=20,
-                wraplength=250,  # 适配窗口宽度
+                self.content_frame， 
+                text=course['name']， 
+                font=self.font_config，
+                borderwidth=1， 
+                relief="solid"，
+                padding=10，  # 内边距，影响单元格大小
+                anchor="center"，  # 改为居中排列
+                width=17，    # 课程列宽度
+                wraplength=250，  # 文字换行宽度
                 style=style if not is_current else ""
             )
             # 当前课程高亮显示
             if is_current:
-                course_label.configure(background="#d1ecf1", font=('SimHei', 12, 'bold', 'underline'))
+                course_label.configure(background="#d1ecf1", font=('SimHei', self.course_font_size, 'bold', 'underline'))
                 
             course_label.grid(row=i, column=1, sticky="nsew", pady=2)
         
         # 确保行和列能自适应内容
-        self.content_frame.grid_columnconfigure(0, weight=1)
-        self.content_frame.grid_columnconfigure(1, weight=2)
+        self.content_frame。grid_columnconfigure(0, weight=1)
+        self.content_frame。grid_columnconfigure(1, weight=2)
         # 手动触发滚动区域更新
-        self.root.after(100, lambda: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        self.root。after(100， lambda: self.canvas.configure(scrollregion=self.canvas。bbox("all")))
+    
+    def increase_time_font(self, icon=无, item=无):
+        self.time_font_size += 2
+        self.update_fonts()
+        self.load_and_display_schedule()
+    
+    def decrease_time_font(self, icon=无, item=无):
+        if self.time_font_size > 8:  # 设置最小字体限制
+            self.time_font_size -= 2
+            self.update_fonts()
+            self.load_and_display_schedule()
+    
+    def increase_course_font(self, icon=无, item=无):
+        self.course_font_size += 2
+        self.update_fonts()
+        self.load_and_display_schedule()
+    
+    def decrease_course_font(self, icon=None, item=None):
+        if self.course_font_size > 8:  # 设置最小字体限制
+            self.course_font_size -= 2
+            self.update_fonts()
+            self.load_and_display_schedule()
+    
+    def update_fonts(self):
+        # 更新字体配置
+        self.font_config = ('SimHei', self.course_font_size)
+        self.title_font = ('SimHei', self.title_font_size, 'bold')
+        self.time_font = ('SimHei', self.time_font_size, 'bold')
+        # 更新标题标签字体
+        self.title_label.config(font=self.title_font)
     
     def run(self):
         self.root.mainloop()
@@ -486,4 +536,3 @@ class CustomizableScheduleApp:
 if __name__ == "__main__":
     app = CustomizableScheduleApp()
     app.run()
-    
